@@ -1,0 +1,15 @@
+# node
+node-app/node_modules
+node-app/dist
+node-app/.env
+# mysql
+mysql/data
+# env
+.env
+# logs
+*.log
+/var/log/*
+# editor
+.vscode
+.idea
+.DS_Store
