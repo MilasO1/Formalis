@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: formalis_db
+      MYSQL_USER: formalis
+      MYSQL_PASSWORD: change_me
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  node-app:
+    build:
+      context: ./node-app
+    environment:
+      DB_HOST: db
+      DB_USER: formalis
+      DB_PASSWORD: change_me
+      DB_NAME: formalis_db
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:stable
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/logs:/var/log/nginx
+      - ./node-app/static:/usr/src/app/static
+    ports:
+      - "443:443"
+    depends_on:
+      - node-app
+
+volumes:
+  db_data:
+

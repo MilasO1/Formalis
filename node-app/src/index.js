@@ -1,8 +1,15 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+
+// Routes
+app.use('/api/users', userRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {
