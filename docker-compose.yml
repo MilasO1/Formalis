@@ -1,67 +1,49 @@
-version: '3.8'
 services:
   db:
     image: mysql:8.0
-    container_name: formalis_db
-    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-formalis_db}
-      MYSQL_USER: ${MYSQL_USER:-formalis}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: formalis_db
+      MYSQL_USER: formalis
+      MYSQL_PASSWORD: change_me
+    ports:
+      - "3307:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - formalis_net
+      - db_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin","ping","-h","localhost"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
       retries: 5
 
   node-app:
     build:
       context: ./node-app
-      dockerfile: Dockerfile
-    container_name: formalis_node
-    restart: unless-stopped
     environment:
-      PORT: 3000
       DB_HOST: db
-      DB_USER: ${MYSQL_USER}
-      DB_PASSWORD: ${MYSQL_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE:-formalis_db}
+      DB_USER: formalis
+      DB_PASSWORD: change_me
+      DB_NAME: formalis_db
+      PORT: 3000
+    ports:
+      - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - formalis_net
-    healthcheck:
-      test: ["CMD-SHELL", "node src/healthcheck.js || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
 
   nginx:
     image: nginx:stable
-    container_name: formalis_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./node-app/static:/usr/share/nginx/html:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
+      - ./nginx/logs:/var/log/nginx
+      - ./node-app/static:/usr/src/app/static
+    ports:
+      - "443:443"
     depends_on:
       - node-app
-    networks:
-      - formalis_net
 
 volumes:
-  mysql_data:
+  db_data:
 
-networks:
-  formalis_net:
-    driver: bridge
